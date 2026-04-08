@@ -322,10 +322,23 @@
     .stats-bar  { gap: 14px; }
     .mode-selector { grid-template-columns: repeat(3, 1fr); }
   }
+
+  /* Shuffle toast */
+  .shuffle-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: var(--bg); padding: 10px 22px; border-radius: 30px;
+    font-weight: 700; font-size: 0.9em; z-index: 999;
+    transition: transform 0.4s cubic-bezier(.34,1.56,.64,1), opacity 0.4s;
+    opacity: 0; pointer-events: none;
+    box-shadow: 0 4px 20px rgba(56,189,248,0.4);
+  }
+  .shuffle-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 </style>
 </head>
 <body>
 
+<div class="shuffle-toast" id="shuffleToast">🔀 Questions Shuffled!</div>
 <div class="streak" id="streak">Streak: <span id="streakCount">0</span></div>
 
 <div class="container">
@@ -333,7 +346,7 @@
   <!-- ① Header -->
   <div class="header">
     <h1>Indiana Primary Instructor Exam</h1>
-    <p>184 questions · Master the material with multiple study modes</p>
+    <p>183 questions · Questions shuffle every new session</p>
   </div>
 
   <!-- ② Progress bar -->
@@ -393,98 +406,269 @@
 <script>
 // ===== FLASHCARD DATA =====
 const rawCards = [
-  {q:"Educators are responsible for:\na. Accurately representing the work of others (avoiding plagiarism)\nb. Maintain professional, vocational, and academic competence\nc. Maintain confidentiality in matters related to evaluation and assessment\nd. All of the above",a:"d. All of the above",cat:"Professional Ethics"},
-  {q:"An instructor that claims knowledge or skills that they don't possess:\na. Pedantic bore\nb. Charlatan\nc. Imposter\nd. Counterfeit instructor",a:"b. Charlatan",cat:"Professional Ethics"},
-  {q:"The EMS primary instructor is under the direction of:\na. The instructor's department\nb. The Government\nc. The State\nd. The training institution",a:"d. The training institution",cat:"Professional Ethics"},
-  {q:"What lobe of the cerebrum contains the thinking center of the brain?\na. Frontal lobe\nb. Temporal lobe\nc. Parietal lobe\nd. Occipital lobe",a:"a. Frontal lobe",cat:"Brain & Learning"},
-  {q:"Analytical thinkers are _________ - brained, and enjoy ____________.\na. Left, Numbers and Words\nb. Left, Art and Creative Activities\nc. Right, Numbers and Words\nd. Right, Art and Creative Activities",a:"a. Left, Numbers and Words",cat:"Brain & Learning"},
-  {q:"Global thinkers are _________ brained, and enjoy ___________.\na. Left, Numbers and Words\nb. Left, Art and Creative Activities\nc. Right, Numbers and Words\nd. Right, Art and Creative Activities",a:"d. Right, Art and Creative Activities",cat:"Brain & Learning"},
-  {q:"You have just communicated something that is slightly complex, which of the following is the best way to see if the student understood you?\na. Look for his/her facial expressions\nb. Have the student repeat exactly what you just said\nc. Test the student right afterward with a written test\nd. Have the student rephrase what you said",a:"d. Have the student rephrase what you said",cat:"Communication"},
-  {q:"Which of the following is considered feedback?\na. Tests and quizzes\nb. Facial expressions\nc. Verbal responses\nd. All of the above",a:"d. All of the above",cat:"Communication"},
-  {q:"The transfer of information and understanding from one person to another:\na. Active Listening\nb. Communication\nc. Transferrence\nd. Comprehension",a:"b. Communication",cat:"Communication"},
-  {q:"A lecture is:\na. Student centered\nb. Instructor centered",a:"b. Instructor centered",cat:"Teaching Methods"},
-  {q:"The zone of proximal development was introduced by:\na. Abraham Maslow\nb. Bloom\nc. Vygotsky\nd. Piaget",a:"c. Vygotsky",cat:"Learning Theory"},
-  {q:"Maslow's hierarchy of needs includes all of the following EXCEPT:\na. Self-actualization\nb. Love/belonging\nc. Safety\nd. Financial success",a:"d. Financial success",cat:"Learning Theory"},
-  {q:"The three domains of learning are:\na. Cognitive, Affective, Psychomotor\nb. Knowledge, Skills, Attitudes\nc. Both A and B\nd. Neither A nor B",a:"c. Both A and B",cat:"Learning Domains"},
-  {q:"The lowest level of the Cognitive Domain is:\na. Comprehension\nb. Application\nc. Knowledge\nd. Analysis",a:"c. Knowledge",cat:"Learning Domains"},
-  {q:"The highest level of the Cognitive Domain is:\na. Synthesis\nb. Evaluation\nc. Analysis\nd. Application",a:"b. Evaluation",cat:"Learning Domains"},
-  {q:"The Affective Domain levels in order are:\na. Receiving, Responding, Valuing, Organization, Characterization\nb. Responding, Receiving, Valuing, Organization, Characterization\nc. Receiving, Valuing, Responding, Organization, Characterization\nd. Receiving, Responding, Organization, Valuing, Characterization",a:"a. Receiving, Responding, Valuing, Organization, Characterization",cat:"Learning Domains"},
-  {q:"The Psychomotor Domain levels are as follows:\na. Imitation, Precision, Articulation, Naturalization, Manipulation\nb. Manipulation, Precision, Articulation, Naturalization, Imitation\nc. Imitation, Manipulation, Articulation, Precision, Naturalization\nd. Imitation, Manipulation, Precision, Articulation, Naturalization",a:"d. Imitation, Manipulation, Precision, Articulation, Naturalization",cat:"Learning Domains"},
+  {q:"Educators are responsible for:
+a. Accurately representing the work of others (avoiding plagiarism)
+b. Maintain professional, vocational, and academic competence
+c. Maintain confidentiality in matters related to evaluation and assessment
+d. All of the above",a:"d. All of the above",cat:"Professional Ethics"},
+  {q:"An instructor that claims knowledge or skills that they don't possess:
+a. Pedantic bore
+b. Charlatan
+c. Imposter
+d. Counterfeit instructor",a:"b. Charlatan",cat:"Professional Ethics"},
+  {q:"The EMS primary instructor is under the direction of:
+a. The instructor's department
+b. The Government
+c. The State
+d. The training institution",a:"d. The training institution",cat:"Professional Ethics"},
+  {q:"What lobe of the cerebrum contains the thinking center of the brain?
+a. Frontal lobe
+b. Temporal lobe
+c. Parietal lobe
+d. Occipital lobe",a:"a. Frontal lobe",cat:"Brain & Learning"},
+  {q:"Analytical thinkers are _________ - brained, and enjoy ____________.
+a. Left, Numbers and Words
+b. Left, Art and Creative Activities
+c. Right, Numbers and Words
+d. Right, Art and Creative Activities",a:"a. Left, Numbers and Words",cat:"Brain & Learning"},
+  {q:"Global thinkers are _________ brained, and enjoy ___________.
+a. Left, Numbers and Words
+b. Left, Art and Creative Activities
+c. Right, Numbers and Words
+d. Right, Art and Creative Activities",a:"d. Right, Art and Creative Activities",cat:"Brain & Learning"},
+  {q:"You have just communicated something that is slightly complex, which of the following is the best way to see if the student understood you?
+a. Look for his/her facial expressions
+b. Have the student repeat exactly what you just said
+c. Test the student right afterward with a written test
+d. Have the student rephrase what you said",a:"d. Have the student rephrase what you said",cat:"Communication"},
+  {q:"Which of the following is considered feedback?
+a. Tests and quizzes
+b. Facial expressions
+c. Verbal responses
+d. All of the above",a:"d. All of the above",cat:"Communication"},
+  {q:"The transfer of information and understanding from one person to another:
+a. Active Listening
+b. Communication
+c. Transferrence
+d. Comprehension",a:"b. Communication",cat:"Communication"},
+  {q:"A lecture is:
+a. Student centered
+b. Instructor centered",a:"b. Instructor centered",cat:"Teaching Methods"},
+  {q:"The zone of proximal development was introduced by:
+a. Abraham Maslow
+b. Bloom
+c. Vygotsky
+d. Piaget",a:"c. Vygotsky",cat:"Learning Theory"},
+  {q:"Maslow's hierarchy of needs includes all of the following EXCEPT:
+a. Self-actualization
+b. Love/belonging
+c. Safety
+d. Financial success",a:"d. Financial success",cat:"Learning Theory"},
+  {q:"The three domains of learning are:
+a. Cognitive, Affective, Psychomotor
+b. Knowledge, Skills, Attitudes
+c. Both A and B
+d. Neither A nor B",a:"c. Both A and B",cat:"Learning Domains"},
+  {q:"The lowest level of the Cognitive Domain is:
+a. Comprehension
+b. Application
+c. Knowledge
+d. Analysis",a:"c. Knowledge",cat:"Learning Domains"},
+  {q:"The highest level of the Cognitive Domain is:
+a. Synthesis
+b. Evaluation
+c. Analysis
+d. Application",a:"b. Evaluation",cat:"Learning Domains"},
+  {q:"The Affective Domain levels in order are:
+a. Receiving, Responding, Valuing, Organization, Characterization
+b. Responding, Receiving, Valuing, Organization, Characterization
+c. Receiving, Valuing, Responding, Organization, Characterization
+d. Receiving, Responding, Organization, Valuing, Characterization",a:"a. Receiving, Responding, Valuing, Organization, Characterization",cat:"Learning Domains"},
+  {q:"The Psychomotor Domain levels are as follows:
+a. Imitation, Precision, Articulation, Naturalization, Manipulation
+b. Manipulation, Precision, Articulation, Naturalization, Imitation
+c. Imitation, Manipulation, Articulation, Precision, Naturalization
+d. Imitation, Manipulation, Precision, Articulation, Naturalization",a:"d. Imitation, Manipulation, Precision, Articulation, Naturalization",cat:"Learning Domains"},
   {q:"True or False: Motivation is defined as the internal drive that pushes us toward action",a:"True",cat:"Motivation"},
-  {q:"Which of the following is NOT a type of motivation?\na. Intrinsic\nb. Extrinsic\nc. External\nd. Internal",a:"c. External",cat:"Motivation"},
-  {q:"The science of teaching adults is called:\na. Pedagogy\nb. Andragogy",a:"b. Andragogy",cat:"Teaching Methods"},
-  {q:"The science of teaching children is called:\na. Pedagogy\nb. Andragogy",a:"a. Pedagogy",cat:"Teaching Methods"},
-  {q:"The three components of a learning objective are:\na. Condition, Performance, Standard\nb. Goal, Objective, Standard\nc. Knowledge, Skills, Attitudes\nd. Cognitive, Affective, Psychomotor",a:"a. Condition, Performance, Standard",cat:"Lesson Planning"},
-  {q:"The specific statement of instructional intent is:\na. Objective\nb. Goal",a:"a. Objective",cat:"Lesson Planning"},
+  {q:"Which of the following is NOT a type of motivation?
+a. Intrinsic
+b. Extrinsic
+c. External
+d. Internal",a:"c. External",cat:"Motivation"},
+  {q:"The science of teaching adults is called:
+a. Pedagogy
+b. Andragogy",a:"b. Andragogy",cat:"Teaching Methods"},
+  {q:"The science of teaching children is called:
+a. Pedagogy
+b. Andragogy",a:"a. Pedagogy",cat:"Teaching Methods"},
+  {q:"The three components of a learning objective are:
+a. Condition, Performance, Standard
+b. Goal, Objective, Standard
+c. Knowledge, Skills, Attitudes
+d. Cognitive, Affective, Psychomotor",a:"a. Condition, Performance, Standard",cat:"Lesson Planning"},
+  {q:"The specific statement of instructional intent is:
+a. Objective
+b. Goal",a:"a. Objective",cat:"Lesson Planning"},
   {q:"True or False: A lesson plan is a detailed guide used by an instructor to teach a topic",a:"True",cat:"Lesson Planning"},
   {q:"True or False: Providing a room of equipment and instructing students to practice skills with no assigned structure will usually result in chaos and little active practice",a:"True",cat:"Teaching Methods"},
-  {q:"Students may not complete course readings for the following reasons:\na. Unpreparedness & lack of motivation\nb. Time constraints & underestimated of importance\nc. All of the above",a:"c. All of the above",cat:"Teaching Methods"},
-  {q:"Communication is:\na. A process which is not clearly understood\nb. A process between two people",a:"b. A process between two people",cat:"Communication"},
+  {q:"Students may not complete course readings for the following reasons:
+a. Unpreparedness & lack of motivation
+b. Time constraints & underestimated of importance
+c. All of the above",a:"c. All of the above",cat:"Teaching Methods"},
+  {q:"Communication is:
+a. A process which is not clearly understood
+b. A process between two people",a:"b. A process between two people",cat:"Communication"},
   {q:"True or False: Active listening involves fully concentrating on what is being said",a:"True",cat:"Communication"},
-  {q:"The four main learning styles are:\na. Visual, Auditory, Reading/Writing, Kinesthetic\nb. Seeing, Hearing, Doing, Thinking\nc. Both A and B\nd. Neither A nor B",a:"a. Visual, Auditory, Reading/Writing, Kinesthetic",cat:"Learning Styles"},
-  {q:"Visual learners prefer:\na. Lectures and discussions\nb. Diagrams, charts, and images\nc. Hands-on practice\nd. Reading textbooks",a:"b. Diagrams, charts, and images",cat:"Learning Styles"},
-  {q:"Auditory learners prefer:\na. Charts and images\nb. Group discussions and lectures\nc. Written notes\nd. Physical activities",a:"b. Group discussions and lectures",cat:"Learning Styles"},
-  {q:"Kinesthetic learners prefer:\na. Lectures\nb. Reading\nc. Hands-on practice and physical activity\nd. Visual aids",a:"c. Hands-on practice and physical activity",cat:"Learning Styles"},
-  {q:"Global learners are:\na. Detail-oriented, left-brained\nb. Big picture learners, right-brained",a:"b. Big picture learners, right-brained",cat:"Learning Styles"},
-  {q:"Social learners:\na. Learn best alone\nb. Are engaged with multiple tasks with other learners",a:"b. Are engaged with multiple tasks with other learners",cat:"Learning Styles"},
-  {q:"Independent learners:\na. Learn best in quiet, undisturbed, on their own\nb. Prefer group work",a:"a. Learn best in quiet, undisturbed, on their own",cat:"Learning Styles"},
-  {q:"Converger learners have dominant abilities in:\na. Abstract conceptualization, favors practical application\nb. Reflective observation",a:"a. Abstract conceptualization, favors practical application",cat:"Learning Styles"},
-  {q:"Diverger learners are:\na. Action-oriented doers\nb. Reflective, watch something be done before trying it",a:"b. Reflective, watch something be done before trying it",cat:"Learning Styles"},
-  {q:"Assimilator learners:\na. Like to understand theory before putting something into practice\nb. Are hands-on doers",a:"a. Like to understand theory before putting something into practice",cat:"Learning Styles"},
-  {q:"Accommodator learners are:\na. Theoretical thinkers\nb. Doers - often the first to volunteer",a:"b. Doers - often the first to volunteer",cat:"Learning Styles"},
+  {q:"The four main learning styles are:
+a. Visual, Auditory, Reading/Writing, Kinesthetic
+b. Seeing, Hearing, Doing, Thinking
+c. Both A and B
+d. Neither A nor B",a:"a. Visual, Auditory, Reading/Writing, Kinesthetic",cat:"Learning Styles"},
+  {q:"Visual learners prefer:
+a. Lectures and discussions
+b. Diagrams, charts, and images
+c. Hands-on practice
+d. Reading textbooks",a:"b. Diagrams, charts, and images",cat:"Learning Styles"},
+  {q:"Auditory learners prefer:
+a. Charts and images
+b. Group discussions and lectures
+c. Written notes
+d. Physical activities",a:"b. Group discussions and lectures",cat:"Learning Styles"},
+  {q:"Kinesthetic learners prefer:
+a. Lectures
+b. Reading
+c. Hands-on practice and physical activity
+d. Visual aids",a:"c. Hands-on practice and physical activity",cat:"Learning Styles"},
+  {q:"Global learners are:
+a. Detail-oriented, left-brained
+b. Big picture learners, right-brained",a:"b. Big picture learners, right-brained",cat:"Learning Styles"},
+  {q:"Social learners:
+a. Learn best alone
+b. Are engaged with multiple tasks with other learners",a:"b. Are engaged with multiple tasks with other learners",cat:"Learning Styles"},
+  {q:"Independent learners:
+a. Learn best in quiet, undisturbed, on their own
+b. Prefer group work",a:"a. Learn best in quiet, undisturbed, on their own",cat:"Learning Styles"},
+  {q:"Converger learners have dominant abilities in:
+a. Abstract conceptualization, favors practical application
+b. Reflective observation",a:"a. Abstract conceptualization, favors practical application",cat:"Learning Styles"},
+  {q:"Diverger learners are:
+a. Action-oriented doers
+b. Reflective, watch something be done before trying it",a:"b. Reflective, watch something be done before trying it",cat:"Learning Styles"},
+  {q:"Assimilator learners:
+a. Like to understand theory before putting something into practice
+b. Are hands-on doers",a:"a. Like to understand theory before putting something into practice",cat:"Learning Styles"},
+  {q:"Accommodator learners are:
+a. Theoretical thinkers
+b. Doers - often the first to volunteer",a:"b. Doers - often the first to volunteer",cat:"Learning Styles"},
   {q:"Define Pedagogy",a:"Methods and practices used for teaching children",cat:"Teaching Methods"},
   {q:"Define Andragogy",a:"Methods and practices used for teaching adults",cat:"Teaching Methods"},
   {q:"True or False: Adults learn best when the material is relevant to their lives and work",a:"True",cat:"Teaching Methods"},
-  {q:"The 11 Professional clinical behaviors of Emergency Responders per NAEMSA include:\nIntegrity, Empathy, Self Motivation, Neat appearance and personal hygiene, Effective communication, Self confidence, Time management, Teamwork/diplomacy, Respect, Patient advocacy, Careful delivery of service",a:"All 11 listed",cat:"Professional Ethics"},
+  {q:"The 11 Professional clinical behaviors of Emergency Responders per NAEMSA include:
+Integrity, Empathy, Self Motivation, Neat appearance and personal hygiene, Effective communication, Self confidence, Time management, Teamwork/diplomacy, Respect, Patient advocacy, Careful delivery of service",a:"All 11 listed",cat:"Professional Ethics"},
   {q:"True or False: Formative evaluation occurs during the learning process",a:"True",cat:"Assessment"},
   {q:"True or False: Summative evaluation occurs at the end of a course or unit",a:"True",cat:"Assessment"},
   {q:"True or False: A valid test measures what it is intended to measure",a:"True",cat:"Assessment"},
   {q:"True or False: A reliable test produces consistent results over time",a:"True",cat:"Assessment"},
   {q:"True or False: Item analysis helps determine the effectiveness of test questions",a:"True",cat:"Assessment"},
-  {q:"The affective domain deals with:\na. Physical skills\nb. Knowledge and thinking\nc. Attitudes, values, and emotions\nd. Motor skills",a:"c. Attitudes, values, and emotions",cat:"Learning Domains"},
-  {q:"The psychomotor domain deals with:\na. Attitudes and values\nb. Physical skills and motor activities\nc. Knowledge recall\nd. Emotional responses",a:"b. Physical skills and motor activities",cat:"Learning Domains"},
-  {q:"The cognitive domain deals with:\na. Physical skills\nb. Attitudes\nc. Knowledge and intellectual skills\nd. Motor skills",a:"c. Knowledge and intellectual skills",cat:"Learning Domains"},
-  {q:"Bloom's Taxonomy levels in the Cognitive Domain from lowest to highest:\na. Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation\nb. Evaluation, Synthesis, Analysis, Application, Comprehension, Knowledge",a:"a. Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation",cat:"Learning Domains"},
+  {q:"The affective domain deals with:
+a. Physical skills
+b. Knowledge and thinking
+c. Attitudes, values, and emotions
+d. Motor skills",a:"c. Attitudes, values, and emotions",cat:"Learning Domains"},
+  {q:"The psychomotor domain deals with:
+a. Attitudes and values
+b. Physical skills and motor activities
+c. Knowledge recall
+d. Emotional responses",a:"b. Physical skills and motor activities",cat:"Learning Domains"},
+  {q:"The cognitive domain deals with:
+a. Physical skills
+b. Attitudes
+c. Knowledge and intellectual skills
+d. Motor skills",a:"c. Knowledge and intellectual skills",cat:"Learning Domains"},
+  {q:"Bloom's Taxonomy levels in the Cognitive Domain from lowest to highest:
+a. Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation
+b. Evaluation, Synthesis, Analysis, Application, Comprehension, Knowledge",a:"a. Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation",cat:"Learning Domains"},
   {q:"True or False: Instructor-centered teaching focuses primarily on the instructor delivering content",a:"True",cat:"Teaching Methods"},
   {q:"True or False: Student-centered teaching focuses on active learning and student participation",a:"True",cat:"Teaching Methods"},
-  {q:"Case-based learning is an example of:\na. Instructor-centered teaching\nb. Student-centered teaching",a:"b. Student-centered teaching",cat:"Teaching Methods"},
-  {q:"Which is NOT a characteristic of adult learners?\na. Self-directed\nb. Goal-oriented\nc. Prefer passive learning\nd. Bring life experience",a:"c. Prefer passive learning",cat:"Teaching Methods"},
-  {q:"The four steps of skill teaching are:\na. Explain, Demonstrate, Practice, Evaluate\nb. Lecture, Test, Grade, Review",a:"a. Explain, Demonstrate, Practice, Evaluate",cat:"Teaching Methods"},
+  {q:"Case-based learning is an example of:
+a. Instructor-centered teaching
+b. Student-centered teaching",a:"b. Student-centered teaching",cat:"Teaching Methods"},
+  {q:"Which is NOT a characteristic of adult learners?
+a. Self-directed
+b. Goal-oriented
+c. Prefer passive learning
+d. Bring life experience",a:"c. Prefer passive learning",cat:"Teaching Methods"},
+  {q:"The four steps of skill teaching are:
+a. Explain, Demonstrate, Practice, Evaluate
+b. Lecture, Test, Grade, Review",a:"a. Explain, Demonstrate, Practice, Evaluate",cat:"Teaching Methods"},
   {q:"True or False: A well-written objective is measurable and observable",a:"True",cat:"Lesson Planning"},
   {q:"True or False: The condition in a learning objective describes the circumstances under which the performance occurs",a:"True",cat:"Lesson Planning"},
   {q:"True or False: The standard in a learning objective describes how well the student must perform",a:"True",cat:"Lesson Planning"},
-  {q:"An enabling objective:\na. Describes the overall course goal\nb. Describes a smaller step needed to reach the terminal objective",a:"b. Describes a smaller step needed to reach the terminal objective",cat:"Lesson Planning"},
-  {q:"A terminal objective:\na. Describes what the student should be able to do at the end of the course\nb. Describes individual lesson goals",a:"a. Describes what the student should be able to do at the end of the course",cat:"Lesson Planning"},
+  {q:"An enabling objective:
+a. Describes the overall course goal
+b. Describes a smaller step needed to reach the terminal objective",a:"b. Describes a smaller step needed to reach the terminal objective",cat:"Lesson Planning"},
+  {q:"A terminal objective:
+a. Describes what the student should be able to do at the end of the course
+b. Describes individual lesson goals",a:"a. Describes what the student should be able to do at the end of the course",cat:"Lesson Planning"},
   {q:"True or False: Questioning is one of the most effective teaching tools",a:"True",cat:"Teaching Methods"},
-  {q:"Open-ended questions:\na. Have one correct answer\nb. Encourage discussion and critical thinking",a:"b. Encourage discussion and critical thinking",cat:"Teaching Methods"},
-  {q:"Closed-ended questions:\na. Have a specific correct answer\nb. Encourage open discussion",a:"a. Have a specific correct answer",cat:"Teaching Methods"},
+  {q:"Open-ended questions:
+a. Have one correct answer
+b. Encourage discussion and critical thinking",a:"b. Encourage discussion and critical thinking",cat:"Teaching Methods"},
+  {q:"Closed-ended questions:
+a. Have a specific correct answer
+b. Encourage open discussion",a:"a. Have a specific correct answer",cat:"Teaching Methods"},
   {q:"True or False: Wait time after asking a question allows students to think before responding",a:"True",cat:"Teaching Methods"},
   {q:"True or False: Redirecting a question means asking another student to answer",a:"True",cat:"Teaching Methods"},
   {q:"True or False: Positive reinforcement encourages desired behavior",a:"True",cat:"Motivation"},
   {q:"True or False: Negative reinforcement removes an unpleasant stimulus to encourage behavior",a:"True",cat:"Motivation"},
-  {q:"Maslow's hierarchy from bottom to top:\na. Physiological, Safety, Love/Belonging, Esteem, Self-actualization\nb. Self-actualization, Esteem, Love/Belonging, Safety, Physiological",a:"a. Physiological, Safety, Love/Belonging, Esteem, Self-actualization",cat:"Learning Theory"},
-  {q:"According to Maslow, a student who is hungry or tired is struggling with which need?\na. Safety\nb. Physiological\nc. Esteem\nd. Self-actualization",a:"b. Physiological",cat:"Learning Theory"},
+  {q:"Maslow's hierarchy from bottom to top:
+a. Physiological, Safety, Love/Belonging, Esteem, Self-actualization
+b. Self-actualization, Esteem, Love/Belonging, Safety, Physiological",a:"a. Physiological, Safety, Love/Belonging, Esteem, Self-actualization",cat:"Learning Theory"},
+  {q:"According to Maslow, a student who is hungry or tired is struggling with which need?
+a. Safety
+b. Physiological
+c. Esteem
+d. Self-actualization",a:"b. Physiological",cat:"Learning Theory"},
   {q:"True or False: Constructivism suggests learners construct their own understanding",a:"True",cat:"Learning Theory"},
   {q:"True or False: Behaviorism focuses on observable behaviors and responses to stimuli",a:"True",cat:"Learning Theory"},
   {q:"True or False: Scaffolding involves providing support that is gradually removed as the learner becomes more capable",a:"True",cat:"Learning Theory"},
-  {q:"The zone of proximal development is:\na. What a student can do alone\nb. What a student can do with guidance that they cannot do alone\nc. What is beyond the student's ability",a:"b. What a student can do with guidance that they cannot do alone",cat:"Learning Theory"},
+  {q:"The zone of proximal development is:
+a. What a student can do alone
+b. What a student can do with guidance that they cannot do alone
+c. What is beyond the student's ability",a:"b. What a student can do with guidance that they cannot do alone",cat:"Learning Theory"},
   {q:"True or False: Diversity in the classroom should be acknowledged and respected",a:"True",cat:"Professional Ethics"},
   {q:"True or False: An instructor should be a role model for professional behavior",a:"True",cat:"Professional Ethics"},
   {q:"True or False: Ethical instructors maintain confidentiality of student records",a:"True",cat:"Professional Ethics"},
   {q:"True or False: Bias and discrimination have no place in the classroom",a:"True",cat:"Professional Ethics"},
   {q:"True or False: ADA requires reasonable accommodations for students with disabilities",a:"True",cat:"Professional Ethics"},
   {q:"True or False: Sexual harassment includes unwelcome conduct of a sexual nature",a:"True",cat:"Professional Ethics"},
-  {q:"A test blueprint or table of specifications helps ensure:\na. Test questions are randomly selected\nb. Test questions align with course objectives\nc. Tests are easy to grade\nd. All students pass",a:"b. Test questions align with course objectives",cat:"Assessment"},
+  {q:"A test blueprint or table of specifications helps ensure:
+a. Test questions are randomly selected
+b. Test questions align with course objectives
+c. Tests are easy to grade
+d. All students pass",a:"b. Test questions align with course objectives",cat:"Assessment"},
   {q:"True or False: Norm-referenced testing compares students to each other",a:"True",cat:"Assessment"},
   {q:"True or False: Criterion-referenced testing measures students against a set standard",a:"True",cat:"Assessment"},
-  {q:"The difficulty index of a test question measures:\na. How confusing the question is\nb. The proportion of students who answered correctly\nc. How long it takes to answer\nd. The reading level",a:"b. The proportion of students who answered correctly",cat:"Assessment"},
-  {q:"The discrimination index of a test question measures:\na. If the question is biased\nb. How well the question differentiates between high and low performers\nc. The difficulty level\nd. The reading level",a:"b. How well the question differentiates between high and low performers",cat:"Assessment"},
+  {q:"The difficulty index of a test question measures:
+a. How confusing the question is
+b. The proportion of students who answered correctly
+c. How long it takes to answer
+d. The reading level",a:"b. The proportion of students who answered correctly",cat:"Assessment"},
+  {q:"The discrimination index of a test question measures:
+a. If the question is biased
+b. How well the question differentiates between high and low performers
+c. The difficulty level
+d. The reading level",a:"b. How well the question differentiates between high and low performers",cat:"Assessment"},
   {q:"True or False: Multiple choice questions should have plausible distractors",a:"True",cat:"Assessment"},
   {q:"True or False: Avoid using 'always' and 'never' in test questions as they provide clues",a:"True",cat:"Assessment"},
   {q:"True or False: Each test question should test only one concept",a:"True",cat:"Assessment"},
   {q:"True or False: The stem of a multiple choice question should be clear and concise",a:"True",cat:"Assessment"},
   {q:"True or False: Practical skills exams assess psychomotor domain competency",a:"True",cat:"Assessment"},
-  {q:"Presentation skills include:\na. Eye contact, voice projection, movement\nb. Only reading from slides\nc. Standing still and reading notes\nd. Speaking as quickly as possible",a:"a. Eye contact, voice projection, movement",cat:"Communication"},
+  {q:"Presentation skills include:
+a. Eye contact, voice projection, movement
+b. Only reading from slides
+c. Standing still and reading notes
+d. Speaking as quickly as possible",a:"a. Eye contact, voice projection, movement",cat:"Communication"},
   {q:"True or False: Using a variety of teaching methods helps reach more learning styles",a:"True",cat:"Teaching Methods"},
   {q:"True or False: Simulation is an effective method for practicing real-world scenarios",a:"True",cat:"Teaching Methods"},
   {q:"True or False: Debriefing after simulation helps reinforce learning",a:"True",cat:"Teaching Methods"},
@@ -494,15 +678,26 @@ const rawCards = [
   {q:"True or False: Too much text on a slide reduces its effectiveness",a:"True",cat:"Teaching Methods"},
   {q:"True or False: Cooperative learning involves students working together toward a common goal",a:"True",cat:"Teaching Methods"},
   {q:"True or False: Problem-based learning uses real-world problems to drive learning",a:"True",cat:"Teaching Methods"},
-  {q:"The three parts of a lesson plan typically include:\na. Introduction, Body, Conclusion\nb. Start, Middle, End\nc. Both describe the same structure",a:"c. Both describe the same structure",cat:"Lesson Planning"},
+  {q:"The three parts of a lesson plan typically include:
+a. Introduction, Body, Conclusion
+b. Start, Middle, End
+c. Both describe the same structure",a:"c. Both describe the same structure",cat:"Lesson Planning"},
   {q:"True or False: The introduction of a lesson should capture attention and state objectives",a:"True",cat:"Lesson Planning"},
   {q:"True or False: The body of a lesson contains the main content and activities",a:"True",cat:"Lesson Planning"},
   {q:"True or False: The conclusion should summarize key points and check for understanding",a:"True",cat:"Lesson Planning"},
   {q:"True or False: Instructional media should enhance learning, not distract from it",a:"True",cat:"Teaching Methods"},
   {q:"True or False: Copyright laws apply to instructional materials used in the classroom",a:"True",cat:"Professional Ethics"},
   {q:"True or False: Fair use allows limited use of copyrighted material for educational purposes",a:"True",cat:"Professional Ethics"},
-  {q:"Barriers to communication include:\na. Noise, language differences, emotional state\nb. Clear speech, good lighting, quiet room\nc. Active listening, eye contact\nd. None of the above",a:"a. Noise, language differences, emotional state",cat:"Communication"},
-  {q:"Non-verbal communication includes:\na. Body language, facial expressions, gestures\nb. Only spoken words\nc. Written messages\nd. Phone calls",a:"a. Body language, facial expressions, gestures",cat:"Communication"},
+  {q:"Barriers to communication include:
+a. Noise, language differences, emotional state
+b. Clear speech, good lighting, quiet room
+c. Active listening, eye contact
+d. None of the above",a:"a. Noise, language differences, emotional state",cat:"Communication"},
+  {q:"Non-verbal communication includes:
+a. Body language, facial expressions, gestures
+b. Only spoken words
+c. Written messages
+d. Phone calls",a:"a. Body language, facial expressions, gestures",cat:"Communication"},
   {q:"True or False: Feedback should be timely, specific, and constructive",a:"True",cat:"Communication"},
   {q:"True or False: The sender-receiver model is the basic model of communication",a:"True",cat:"Communication"},
   {q:"True or False: Encoding is the process of converting thoughts into a message",a:"True",cat:"Communication"},
@@ -526,57 +721,253 @@ const rawCards = [
   {q:"True or False: Immediate feedback is more effective than delayed feedback for skill learning",a:"True",cat:"Communication"},
   {q:"True or False: Anxiety can be a barrier to learning",a:"True",cat:"Learning Theory"},
   {q:"True or False: The instructor should adapt teaching methods based on student needs and performance",a:"True",cat:"Teaching Methods"},
-  {q:"In Indiana, how many emergency department hours must an EMT student complete?\\na. 8\\nb. 17\\nc. 24\\nd. 150",a:"a. 8",cat:"Indiana Requirements"},
-  {q:"How many CE/teaching hours are required every two years to maintain an Indiana Primary Instructor certification?\\na. 8/50\\nb. 12/80\\nc. 24/100\\nd. 15/60",a:"b. 12/80",cat:"Indiana Requirements"},
-  {q:"The state must know of any significant course or syllabus changes within how many days?\\na. 30\\nb. 15\\nc. 45\\nd. 60",a:"a. 30",cat:"Indiana Requirements"},
-  {q:"How many days after an EMT class is completed do you have to submit a Report of Training?\\na. 30\\nb. 15\\nc. 45\\nd. 60",a:"b. 15",cat:"Indiana Requirements"},
-  {q:"How many days before a class starts must you submit a course application?\\na. 15\\nb. 30\\nc. 45\\nd. 60",a:"b. 30",cat:"Indiana Requirements"},
-  {q:"What are the levels of the cognitive domain in Bloom's Taxonomy (lowest to highest level)?\\na. Understand, remember(knowledge), analyze, apply, evaluate, create\\nb. Remember(knowledge), apply, understand, evaluate, analyze, create\\nc. Remember(knowledge), understand, apply, analyze, evaluate, create\\nd. Remember(knowledge), understand, apply, evaluate, create, analyze",a:"c. Remember(knowledge), understand, apply, analyze, evaluate, create",cat:"Learning Domains"},
-  {q:"What is the order of levels for Bloom's Taxonomy Affective Domain (lowest to highest)?\\na. Responding, receiving, valuing, organization, characterization\\nb. Valuing, receiving, responding, characterization, organization\\nc. Receiving, responding, valuing, organization, characterization\\nd. Responding, valuing, receiving, characterization, organization",a:"c. Receiving, responding, valuing, organization, characterization",cat:"Learning Domains"},
-  {q:"\"An EMT is willing to make service inspections\" — which domain of learning is this?\\na. Cognitive\\nb. Affective\\nc. Psychomotor\\nd. None of the above",a:"b. Affective",cat:"Learning Domains"},
-  {q:"At what level of Bloom's Taxonomy should an EMT student be expected to perform?\\na. Between analyze and evaluate\\nb. Create\\nc. Between evaluate and create\\nd. Between remember and understand",a:"c. Between evaluate and create",cat:"Learning Domains"},
-  {q:"\"Motivation that comes from outside the individual to receive a reward or avoid punishment\":\\na. Internal motivation\\nb. External motivation\\nc. Maslow's hierarchy of needs\\nd. Self-directed motivation",a:"b. External motivation",cat:"Motivation"},
-  {q:"A desire to help others is an example of:\\na. Extrinsic motivation\\nb. Positive reinforcement theory\\nc. Intrinsic motivation\\nd. Socrates motivational indigenous theory",a:"c. Intrinsic motivation",cat:"Motivation"},
-  {q:"Which type of seating arrangement is instructor-centered and best for instructing large groups of students?\\na. Grouped\\nb. Circle, square, rectangle-closed\\nc. Circle, square, rectangle-open\\nd. Traditional",a:"d. Traditional",cat:"Teaching Methods"},
-  {q:"Which type of seating arrangement is student-centered and best for group discussions where the instructor stands off to the side?\\na. Circle, square, rectangle-closed\\nb. Traditional\\nc. Grouped\\nd. Circle, square, rectangle-open",a:"a. Circle, square, rectangle-closed",cat:"Teaching Methods"},
-  {q:"Which type of seating arrangement can be student or instructor-centered and places the educator in the middle of a U-shape?\\na. Traditional\\nb. Grouped\\nc. Circle, square, rectangle-closed\\nd. Circle, square, rectangle-open",a:"d. Circle, square, rectangle-open",cat:"Teaching Methods"},
-  {q:"Which type of seating arrangement is best for a large number of students elevated in tiers and is instructor-centered?\\na. Circle, square, rectangle-open\\nb. Traditional\\nc. Theatre\\nd. Group",a:"c. Theatre",cat:"Teaching Methods"},
-  {q:"The methodology of lifelong education for adults is called:\\na. Perception\\nb. Communication\\nc. Andragogy\\nd. Pedagogy",a:"c. Andragogy",cat:"Teaching Methods"},
-  {q:"The art and science of helping adults learn is __________:\\na. Teaching\\nb. Andragogy\\nc. Pedagogy\\nd. Training",a:"b. Andragogy",cat:"Teaching Methods"},
-  {q:"Passive learning, inexperience, and the preference for guided learning are all characteristics of:\\na. Adult learners\\nb. Child learners\\nc. All learners\\nd. Supervision",a:"b. Child learners",cat:"Teaching Methods"},
-  {q:"These learners learn best from oral presentations of information, discussion, listening, and verbalizing:\\na. Auditory\\nb. Visual\\nc. Kinesthetic",a:"a. Auditory",cat:"Learning Styles"},
-  {q:"These learners benefit from looking up information, writing things down, and watching the performance of a skill:\\na. Auditory\\nb. Visual\\nc. Kinesthetic",a:"b. Visual",cat:"Learning Styles"},
-  {q:"These learners associate movement and tactile experiences with learning:\\na. Auditory\\nb. Visual\\nc. Kinesthetic",a:"c. Kinesthetic",cat:"Learning Styles"},
-  {q:"A left-brained learner who processes information logically and sequentially in small parts working to the big picture:\\na. Analytic\\nb. Global\\nc. Social\\nd. Independent",a:"a. Analytic",cat:"Learning Styles"},
-  {q:"A right-brained learner who thinks \"big picture\" and is creative, artistic, emotional and intuitive:\\na. Analytic\\nb. Global\\nc. Social\\nd. Independent",a:"b. Global",cat:"Learning Styles"},
-  {q:"A learner who processes information best when engaged in multiple tasks in busy environments with other learners:\\na. Analytic\\nb. Global\\nc. Social\\nd. Independent",a:"c. Social",cat:"Learning Styles"},
-  {q:"A learner who seeks a quiet environment and prefers to work alone, usually enjoying reading assignments and written exams:\\na. Analytic\\nb. Global\\nc. Social\\nd. Independent",a:"d. Independent",cat:"Learning Styles"},
-  {q:"Allowing students to take breaks, get a snack, or go to the restroom are all examples of fulfilling:\\na. Safety needs\\nb. Self esteem\\nc. Physiological needs\\nd. Aesthetic needs",a:"c. Physiological needs",cat:"Learning Theory"},
-  {q:"A student who feels respected and the need for self-confidence satisfies what level of Maslow's Hierarchy of Needs?\\na. Physiological\\nb. Self-esteem\\nc. Self-actualization\\nd. Safety needs",a:"b. Self-esteem",cat:"Learning Theory"},
-  {q:"What is the highest level of Maslow's needs that a student can achieve?\\na. Self actualization\\nb. Self esteem\\nc. Social\\nd. Love/Belonging",a:"a. Self actualization",cat:"Learning Theory"},
-  {q:"Maslow's Hierarchy of Needs from the bottom to the top is:\\na. Psychological, Safety, Belonging, Esteem, Self-Actualization\\nb. Psychological, Safety, Esteem, Belonging, Self-Actualization\\nc. Safety, Psychological, Esteem, Belonging, Self-Actualization\\nd. Psychological, Belonging, Safety, Esteem, Self-Actualization",a:"a. Psychological, Safety, Belonging, Esteem, Self-Actualization",cat:"Learning Theory"},
-  {q:"The process of building new learning upon previous learning and knowledge is called __________:\\na. Scaffolding\\nb. Remembering\\nc. Storming\\nd. Assessment",a:"a. Scaffolding",cat:"Learning Theory"},
-  {q:"In 1996, this document was published as a vision of EMS:\\na. NHTSA/DOT EMS Agenda for the Future\\nb. State of the Union address\\nc. Standard of education\\nd. None of the above",a:"a. NHTSA/DOT EMS Agenda for the Future",cat:"Professional Ethics"},
-  {q:"The cerebellum is the region of the brain most responsible for __________:\\na. Visual recognition\\nb. Speech\\nc. Fine motor movement\\nd. Emotions",a:"c. Fine motor movement",cat:"Brain & Learning"},
-  {q:"What lobe of the cerebrum contains the thinking center of the brain?\\na. Temporal\\nb. Parietal\\nc. Frontal\\nd. Occipital",a:"c. Frontal",cat:"Brain & Learning"},
-  {q:"Which part of the brain moves learning from short-term memory into long-term memory?\\na. Cerebellum\\nb. Cerebrum\\nc. Hypothalamus\\nd. Hippocampus",a:"d. Hippocampus",cat:"Brain & Learning"},
-  {q:"Which part of the brain maintains homeostasis by regulating temperature, sleep, and nutrient intake?\\na. Cerebellum\\nb. Cerebrum\\nc. Hypothalamus\\nd. Hippocampus",a:"c. Hypothalamus",cat:"Brain & Learning"},
-  {q:"What does ABCD stand for when writing objectives?\\na. Arrangement, Behavior, Culture, Degree\\nb. Arrangement, Behavior, Condition, Distractions\\nc. Audience, Behavior, Counts, Degree\\nd. Audience, Behavior, Condition, Degree",a:"d. Audience, Behavior, Condition, Degree",cat:"Lesson Planning"},
-  {q:"An evaluation of student performance given at the end of a course or unit is called:\\na. Formative assessment\\nb. Summative assessment\\nc. Knowledge sharing\\nd. Test",a:"b. Summative assessment",cat:"Assessment"},
-  {q:"An ongoing evaluation of student learning throughout the class is known as:\\na. Formative assessment\\nb. Summative assessment\\nc. Knowledge sharing\\nd. Test",a:"a. Formative assessment",cat:"Assessment"},
-  {q:"Assuring that an exam covers a reasonable sample of knowledge and skill objectives is a component of:\\na. Reliability\\nb. Content validity\\nc. Resource assessment\\nd. Objective mapping",a:"b. Content validity",cat:"Assessment"},
-  {q:"The process of correcting a fault or deficiency is called:\\na. Facilitation\\nb. Remediation\\nc. Approval\\nd. Reliability",a:"b. Remediation",cat:"Assessment"},
-  {q:"An instructor should maintain eye contact with the audience while speaking but avoid:\\na. Holding anyone's gaze for too long\\nb. Looking around the room\\nc. Looking at the presentation screen or slides\\nd. None of the above",a:"a. Holding anyone's gaze for too long",cat:"Communication"},
-  {q:"Liability is defined as:\\na. Medical misfeasance\\nb. Prevention to harm\\nc. Something for which one is legally obligated\\nd. Someone who causes damage",a:"c. Something for which one is legally obligated",cat:"Professional Ethics"},
-  {q:"The primary source of information for EMS instructors is:\\na. EMS agenda for the future\\nb. Internet\\nc. Local programs and protocols\\nd. Indiana department of health in association with the CDC",a:"a. EMS agenda for the future",cat:"Professional Ethics"},
-  {q:"FERPA is also called _______ and specifies that _______:\\na. Buckley act; exams are to be constructed based on objectives taught\\nb. Bucker act; grading scales reflect fair and impartial assessment of the students\\nc. Bucknagle act; personally identifiable information in student records is confidential\\nd. Buckley act; personally identifiable information in student records is confidential",a:"d. Buckley act; personally identifiable information in student records is confidential",cat:"Professional Ethics"},
-  {q:"Unwanted teasing, unwanted verbal and physical contact, and requests for favors are all forms of __________:\\na. Harassment\\nb. Infringement\\nc. Assault\\nd. Battery",a:"a. Harassment",cat:"Professional Ethics"},
-  {q:"Whose direction is an EMS primary instructor under?\\na. Medical director\\nb. Training institution\\nc. Federal government\\nd. DOT",a:"b. Training institution",cat:"Professional Ethics"},
-  {q:"An instructor who claims knowledge or skills that he/she does not have is called __________:\\na. Liar\\nb. Imposter\\nc. Charlatan\\nd. None of the above",a:"c. Charlatan",cat:"Professional Ethics"},
-  {q:"Primary instructors are responsible for which of the following:\\na. Maintaining confidentiality with all student information\\nb. Providing a professional and safe learning environment\\nc. Providing feedback and remediation when necessary\\nd. All of the above",a:"d. All of the above",cat:"Professional Ethics"},
-  {q:"This occurs when one person places another person in reasonable fear of immediate harm or physical contact:\\na. Battery\\nb. Assault\\nc. Harassment\\nd. Felony",a:"b. Assault",cat:"Professional Ethics"},
-  {q:"Physical, unlawful touching of another person without consent is called __________:\\na. Assault\\nb. Harassment\\nc. Battery\\nd. Assimilator",a:"c. Battery",cat:"Professional Ethics"},
-  {q:"A private or civil wrong or injury for which the law allows a remedy (not necessarily criminal) is called __________:\\na. Assault\\nb. Battery\\nc. Tort\\nd. Wiki",a:"c. Tort",cat:"Professional Ethics"},
+  {q:"In Indiana, how many emergency department hours must an EMT student complete?
+a. 8
+b. 17
+c. 24
+d. 150",a:"a. 8",cat:"Indiana Regulations"},
+  {q:"What is the correct order of levels for Bloom's Taxonomy Cognitive Domain (lowest to highest)?
+a. Understand, remember, analyze, apply, evaluate, create
+b. Remember, apply, understand, evaluate, analyze, create
+c. Remember, understand, apply, analyze, evaluate, create
+d. Remember, understand, apply, evaluate, create, analyze",a:"c. Remember, understand, apply, analyze, evaluate, create",cat:"Learning Domains"},
+  {q:"\"Motivation that comes from outside the individual to receive a reward or avoid punishment\" describes:
+a. Internal motivation
+b. External motivation
+c. Maslow's hierarchy of needs
+d. Self-directed motivation",a:"b. External motivation",cat:"Motivation"},
+  {q:"Which seating arrangement is instructor-centered and best for instructing large groups?
+a. Grouped
+b. Circle/square/rectangle — closed
+c. Circle/square/rectangle — open
+d. Traditional",a:"d. Traditional",cat:"Teaching Methods"},
+  {q:"Which seating arrangement is student-centered and best for group discussions where the instructor stands off to the side?
+a. Circle/square/rectangle — closed
+b. Traditional
+c. Grouped
+d. Circle/square/rectangle — open",a:"a. Circle/square/rectangle — closed",cat:"Teaching Methods"},
+  {q:"Which seating arrangement can be student- or instructor-centered and places the educator in the middle of a U-shape?
+a. Traditional
+b. Grouped
+c. Circle/square/rectangle — closed
+d. Circle/square/rectangle — open",a:"d. Circle/square/rectangle — open",cat:"Teaching Methods"},
+  {q:"How many CE/teaching hours are required every two years to maintain an Indiana Primary Instructor certification?
+a. 8 CE / 50 teaching
+b. 12 CE / 80 teaching
+c. 24 CE / 100 teaching
+d. 15 CE / 60 teaching",a:"b. 12 CE / 80 teaching",cat:"Indiana Regulations"},
+  {q:"The state must be notified of any significant course or syllabus changes within how many days?
+a. 30
+b. 15
+c. 45
+d. 60",a:"a. 30",cat:"Indiana Regulations"},
+  {q:"In 1996, this document was published as a vision of EMS:
+a. NHTSA/DOT EMS Agenda for the Future
+b. State of the Union Address
+c. Standard of Education
+d. None of the above",a:"a. NHTSA/DOT EMS Agenda for the Future",cat:"EMS History"},
+  {q:"What is the correct order of levels for Bloom's Taxonomy Affective Domain (lowest to highest)?
+a. Responding, receiving, valuing, organization, characterization
+b. Valuing, receiving, responding, characterization, organization
+c. Receiving, responding, valuing, organization, characterization
+d. Responding, valuing, receiving, characterization, organization",a:"c. Receiving, responding, valuing, organization, characterization",cat:"Learning Domains"},
+  {q:"How many days after an EMT class is completed must a Report of Training be submitted?
+a. 30
+b. 15
+c. 45
+d. 60",a:"b. 15",cat:"Indiana Regulations"},
+  {q:"When writing instructional objectives, ABCD stands for:
+a. Arrangement, Behavior, Culture, Degree
+b. Arrangement, Behavior, Condition, Distractions
+c. Audience, Behavior, Counts, Degree
+d. Audience, Behavior, Condition, Degree",a:"d. Audience, Behavior, Condition, Degree",cat:"Lesson Planning"},
+  {q:"These learners learn best from oral presentations, discussion, listening, and verbalizing:
+a. Auditory
+b. Visual
+c. Kinesthetic",a:"a. Auditory",cat:"Learning Styles"},
+  {q:"These learners benefit from looking up information, writing things down, and watching skill performance:
+a. Auditory
+b. Visual
+c. Kinesthetic",a:"b. Visual",cat:"Learning Styles"},
+  {q:"These learners associate movement and tactile experiences with learning:
+a. Auditory
+b. Visual
+c. Kinesthetic",a:"c. Kinesthetic",cat:"Learning Styles"},
+  {q:"A left-brained learner who processes information logically and sequentially, working from small parts to the big picture:
+a. Analytic
+b. Global
+c. Social
+d. Independent",a:"a. Analytic",cat:"Learning Styles"},
+  {q:"A right-brained learner who thinks big picture and is creative, artistic, emotional, and intuitive:
+a. Analytic
+b. Global
+c. Social
+d. Independent",a:"b. Global",cat:"Learning Styles"},
+  {q:"A learner who processes information best when engaged in multiple tasks in busy environments with other learners:
+a. Analytic
+b. Global
+c. Social
+d. Independent",a:"c. Social",cat:"Learning Styles"},
+  {q:"A learner who seeks a quiet environment, prefers to work alone, and usually enjoys reading assignments and written exams:
+a. Analytic
+b. Global
+c. Social
+d. Independent",a:"d. Independent",cat:"Learning Styles"},
+  {q:"\"An EMT is willing to make service inspections.\" Which domain of learning does this represent?
+a. Cognitive
+b. Affective
+c. Psychomotor
+d. None of the above",a:"b. Affective",cat:"Learning Domains"},
+  {q:"Liability is defined as:
+a. Medical misfeasance
+b. Prevention of harm
+c. Something for which one is legally obligated
+d. Someone who causes damage",a:"c. Something for which one is legally obligated",cat:"Professional Ethics"},
+  {q:"The methodology of lifelong education for adults is called:
+a. Perception
+b. Communication
+c. Andragogy
+d. Pedagogy",a:"c. Andragogy",cat:"Teaching Methods"},
+  {q:"Passive learning, inexperience, and preference for guided learning are all characteristics of:
+a. Adult learners
+b. Child learners
+c. All learners
+d. Supervised learners",a:"b. Child learners",cat:"Teaching Methods"},
+  {q:"Allowing students to take breaks, get a snack, or use the restroom are examples of fulfilling:
+a. Safety needs
+b. Self-esteem needs
+c. Physiological needs
+d. Aesthetic needs",a:"c. Physiological needs",cat:"Motivation"},
+  {q:"A student who feels respected and needs self-confidence satisfies what level of Maslow's Hierarchy?
+a. Physiological
+b. Self-esteem
+c. Self-actualization
+d. Safety needs",a:"b. Self-esteem",cat:"Motivation"},
+  {q:"What is the highest level of Maslow's Hierarchy of Needs a student can achieve?
+a. Self-actualization
+b. Self-esteem
+c. Social
+d. Love/Belonging",a:"a. Self-actualization",cat:"Motivation"},
+  {q:"At what level of Bloom's Taxonomy should an EMT student be expected to perform?
+a. Between analyze and evaluate
+b. Create
+c. Between evaluate and create
+d. Between remember and understand",a:"c. Between evaluate and create",cat:"Learning Domains"},
+  {q:"How many days before a class starts must a course application be submitted?
+a. 15
+b. 30
+c. 45
+d. 60",a:"b. 30",cat:"Indiana Regulations"},
+  {q:"Which seating arrangement is best for a large number of students elevated in tiers and is instructor-centered?
+a. Circle/square/rectangle — open
+b. Traditional
+c. Theatre
+d. Group",a:"c. Theatre",cat:"Teaching Methods"},
+  {q:"An evaluation of student performance given at the end of a course or unit is called:
+a. Formative assessment
+b. Summative assessment
+c. Knowledge sharing
+d. Test",a:"b. Summative assessment",cat:"Assessment"},
+  {q:"An ongoing evaluation of student learning throughout the class is known as:
+a. Formative assessment
+b. Summative assessment
+c. Knowledge sharing
+d. Test",a:"a. Formative assessment",cat:"Assessment"},
+  {q:"An instructor should maintain eye contact with the audience while speaking but avoid:
+a. Holding anyone's gaze for too long
+b. Looking around the room
+c. Looking at the presentation screen
+d. None of the above",a:"a. Holding anyone's gaze for too long",cat:"Communication"},
+  {q:"Assuring that an exam covers a reasonable sample of knowledge and skill objectives is a component of:
+a. Reliability
+b. Content validity
+c. Resource assessment
+d. Objective mapping",a:"b. Content validity",cat:"Assessment"},
+  {q:"The process of correcting a fault or deficiency is called:
+a. Facilitation
+b. Remediation
+c. Approval
+d. Reliability",a:"b. Remediation",cat:"Assessment"},
+  {q:"A desire to help others is an example of:
+a. Extrinsic motivation
+b. Positive reinforcement theory
+c. Intrinsic motivation
+d. Instructor-driven motivation",a:"c. Intrinsic motivation",cat:"Motivation"},
+  {q:"The primary source of information for EMS instructors is:
+a. EMS Agenda for the Future
+b. Internet
+c. Local programs and protocols
+d. Indiana Department of Health / CDC",a:"a. EMS Agenda for the Future",cat:"EMS History"},
+  {q:"FERPA is also called the _______ and specifies that _______.
+a. Buckley Act; exams are constructed based on objectives taught
+b. Bucker Act; grading scales reflect fair and impartial assessment
+c. Bucknagle Act; personally identifiable information in student records is confidential
+d. Buckley Act; personally identifiable information in student records is confidential",a:"d. Buckley Act; personally identifiable information in student records is confidential",cat:"Professional Ethics"},
+  {q:"Unwanted teasing, unwanted verbal and physical contact, and requests for favors are all forms of:
+a. Harassment
+b. Infringement
+c. Assault
+d. Battery",a:"a. Harassment",cat:"Professional Ethics"},
+  {q:"Maslow's Hierarchy of Needs from bottom to top is:
+a. Physiological, Safety, Belonging, Esteem, Self-Actualization
+b. Physiological, Safety, Esteem, Belonging, Self-Actualization
+c. Safety, Physiological, Esteem, Belonging, Self-Actualization
+d. Physiological, Belonging, Safety, Esteem, Self-Actualization",a:"a. Physiological, Safety, Belonging, Esteem, Self-Actualization",cat:"Motivation"},
+  {q:"The art and science of helping adults learn is called:
+a. Teaching
+b. Andragogy
+c. Pedagogy
+d. Training",a:"b. Andragogy",cat:"Teaching Methods"},
+  {q:"The cerebellum is the region of the brain most responsible for:
+a. Visual recognition
+b. Speech
+c. Fine motor movement
+d. Emotions",a:"c. Fine motor movement",cat:"Brain & Learning"},
+  {q:"An EMS Primary Instructor is under the direction of:
+a. The medical director
+b. The training institution
+c. The federal government
+d. The DOT",a:"b. The training institution",cat:"Indiana Regulations"},
+  {q:"An instructor who claims knowledge or skills he/she does not actually possess is called a:
+a. Liar
+b. Imposter
+c. Charlatan
+d. None of the above",a:"c. Charlatan",cat:"Professional Ethics"},
+  {q:"Primary Instructors are responsible for which of the following?
+a. Maintaining confidentiality with all student information
+b. Providing a professional and safe learning environment
+c. Providing feedback and remediation when necessary
+d. All of the above",a:"d. All of the above",cat:"Professional Ethics"},
+  {q:"This occurs when one person places another in reasonable fear of immediate harm or physical contact:
+a. Battery
+b. Assault
+c. Harassment
+d. Felony",a:"b. Assault",cat:"Professional Ethics"},
+  {q:"Physical, unlawful touching of another person without consent is called:
+a. Assault
+b. Harassment
+c. Battery
+d. Infringement",a:"c. Battery",cat:"Professional Ethics"},
+  {q:"Which part of the brain moves learning from short-term memory into long-term memory?
+a. Cerebellum
+b. Cerebrum
+c. Hypothalamus
+d. Hippocampus",a:"d. Hippocampus",cat:"Brain & Learning"},
+  {q:"Which part of the brain maintains homeostasis by regulating temperature, sleep, and nutrient intake?
+a. Cerebellum
+b. Cerebrum
+c. Hypothalamus
+d. Hippocampus",a:"c. Hypothalamus",cat:"Brain & Learning"},
+  {q:"The process of building new learning upon previous learning and knowledge is called:
+a. Scaffolding
+b. Remembering
+c. Storming
+d. Assessment",a:"a. Scaffolding",cat:"Learning Theory"},
+  {q:"A private or civil wrong/injury for which the law allows a remedy is called:
+a. Assault
+b. Battery
+c. Tort
+d. Infraction",a:"c. Tort",cat:"Professional Ethics"}
 ];
 
 // ===== STATE =====
@@ -653,6 +1044,14 @@ function filterCategory() {
 
 function shuffle() {
   state.shuffled = [...state.filteredCards].sort(() => Math.random() - 0.5);
+  showShuffleToast();
+}
+
+function showShuffleToast() {
+  const t = document.getElementById('shuffleToast');
+  if (!t) return;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
 }
 
 function setMode(mode) {
